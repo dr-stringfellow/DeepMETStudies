@@ -8,7 +8,7 @@ import argparse
 
 ROOT.gROOT.SetBatch(True)
 
-ROOT.ROOT.EnableImplicitMT(10)
+ROOT.ROOT.EnableImplicitMT(20)
 
 ROOT.gSystem.Load("Functions_cc.so")
 
@@ -36,10 +36,10 @@ if do2016:
 elif do2017:
    chain = ROOT.TChain("Events")
    chain.Add(basedir+"/"+args.era+"/SingleMuon_Run2017B/*root")
-   #chain.Add(basedir+"/"+args.era+"/SingleMuon_Run2017C/*root")
-   #chain.Add(basedir+"/"+args.era+"/SingleMuon_Run2017D/*root")
-   #chain.Add(basedir+"/"+args.era+"/SingleMuon_Run2017E/*root")
-   #chain.Add(basedir+"/"+args.era+"/SingleMuon_Run2017F/*root")
+   chain.Add(basedir+"/"+args.era+"/SingleMuon_Run2017C/*root")
+   chain.Add(basedir+"/"+args.era+"/SingleMuon_Run2017D/*root")
+   chain.Add(basedir+"/"+args.era+"/SingleMuon_Run2017E/*root")
+   chain.Add(basedir+"/"+args.era+"/SingleMuon_Run2017F/*root")
    rdf_org = ROOT.ROOT.RDataFrame(chain)
    rdf_org1 = rdf_org.Filter("HLT_IsoMu27")
 elif do2018:
@@ -56,13 +56,19 @@ elif do2022:
    rdf_org = ROOT.ROOT.RDataFrame(chain)
    rdf_org1 = rdf_org.Filter("HLT_IsoMu27")
 
-rdf_org2 = rdf_org1.Filter("nMuon > 1")
+rdf_org2 = rdf_org1.Filter("nMuon == 2 && Flag_BadPFMuonDzFilter==1")
+rdf_org2 = rdf_org2.Define("Muon_pass0", "abs(Muon_dxy[0]) < 0.045 && abs(Muon_dz[0]) < 0.20 && Muon_pfRelIso04_all[0] <= 0.15 && (Muon_isGlobal[0] || Muon_isTracker[0]) && Muon_pfIsoId[0]>2")
+rdf_org2 = rdf_org2.Define("Muon_pass1", "abs(Muon_dxy[1]) < 0.045 && abs(Muon_dz[1]) < 0.20 && Muon_pfRelIso04_all[1] <= 0.15 && (Muon_isGlobal[1] || Muon_isTracker[1]) && Muon_pfIsoId[1]>2")
+rdf_org3 = rdf_org2.Filter("Muon_pass0 && Muon_pass1")
+rdf_org3 = rdf_org3.Filter("fabs(PV_z)<26 && (PV_y*PV_y + PV_x*PV_x)<3 && PV_npvs>2 && Sum(Jet_pt>30)>0")
+
+#rdf_org2 = rdf_org2.Define("Muon_pass0", "Muon_pt[0] > 30.0 && abs(Muon_eta[0]) < 2.4 && Muon_tightId[0]")
+#rdf_org2 = rdf_org2.Define("Muon_pass1", "Muon_pt[1] > 30.0 && abs(Muon_eta[1]) < 2.4 && Muon_tightId[1]")
+
 #rdf_org2 = rdf_org2.Define("Muon_pass0", "Muon_pt[0] > 25.0 && abs(Muon_eta[0]) < 2.4 && abs(Muon_dxy[0]) < 0.05 && abs(Muon_dz[0]) < 0.10 && Muon_pfRelIso04_all[0] < 0.15 && Muon_tightId[0]")
 #rdf_org2 = rdf_org2.Define("Muon_pass1", "Muon_pt[1] > 25.0 && abs(Muon_eta[1]) < 2.4 && abs(Muon_dxy[1]) < 0.05 && abs(Muon_dz[1]) < 0.10 && Muon_pfRelIso04_all[1] < 0.15 && Muon_tightId[1]")
-rdf_org2 = rdf_org2.Define("Muon_pass0", "Muon_pt[0] > 30.0 && abs(Muon_eta[0]) < 2.4 && Muon_tightId[0]")
-rdf_org2 = rdf_org2.Define("Muon_pass1", "Muon_pt[1] > 30.0 && abs(Muon_eta[1]) < 2.4 && Muon_tightId[1]")
 
-rdf_org3 = rdf_org2.Filter("Muon_pass0 && Muon_pass1")
+
 #rdf = rdf_org1.Define("Muon_pt0", "Muon_pt[0]").Filter("Muon_pt0 > 25.0")
 
 rdf3 = rdf_org3.Define("Mass", "TMath::Sqrt(2*Muon_pt[0]*Muon_pt[1]*(TMath::CosH(Muon_eta[0]-Muon_eta[1]) - TMath::Cos(Muon_phi[0]-Muon_phi[1])))")
@@ -184,8 +190,24 @@ DrawHistos(hresolsSc_paral_diff_VS_nVtx.values(), [labels[itype] for itype in hr
 DrawHistos(hresolsSc_perp_VS_nVtx.values(), [labels[itype] for itype in hresols_perp_VS_nVtx.keys()], 0, 50., "# Vertices", 0, 50.0, "Scaled #sigma u_{#perp} [GeV]", "reco_recoil_resol_perp_VS_nVtx_Scaled", drawashist=True, dology=False, legendPos=[0.20, 0.73, 0.40, 0.92], mycolors=[colors[itype] for itype in hresols_perp_VS_nVtx.keys()], noLumi=True, outdir=outdir)
 
 
-#f1 = ROOT.TFile("root_h/output.root", "RECREATE")
-#for h2 in h2ds_perp_VS_qT.values():
-#    h2.SetDirectory(f1)
-#    h2.Write()
-#f1.Close()
+f1 = ROOT.TFile("output/output.root", "UPDATE")
+olist = [
+      hresponses,
+      hresols_paral_diff,
+      hresols_perp,
+      hresponses_nVtx,
+      hresols_paral_diff_VS_nVtx,
+      hresols_perp_VS_nVtx,
+      hresponsesSc,
+      hresolsSc_paral_diff,
+      hresolsSc_perp,
+      hresponsesSc_nVtx,
+      hresolsSc_paral_diff_VS_nVtx,
+      hresolsSc_perp_VS_nVtx]
+
+for m in olist:
+   for h2 in hresolsSc_perp_VS_nVtx.values():
+      h2.SetDirectory(f1)
+      h2.Write()
+f1.Close()
+

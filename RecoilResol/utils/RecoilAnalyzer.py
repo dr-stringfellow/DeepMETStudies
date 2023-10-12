@@ -75,6 +75,8 @@ class RecoilAnalyzer(object):
 
             self.histos1d_paral_diff[itype] = self.rdf.Histo1D((h_paral_diff_1D, h_paral_diff_1D, nbins_x, xmin, xmax), "u_{RECOIL}_paral_diff".format(RECOIL=itype))
             self.histos1d_perp[itype]       = self.rdf.Histo1D((h_perp_1D,       h_perp_1D,       nbins_x, xmin, xmax), "u_{RECOIL}_perp".format(RECOIL=itype))
+            #for b in range(self.histos1d_perp[itype].GetNbinsX()):
+            #    print(b)
 
     def getResolutions1D(self):
         vresols_paral = OrderedDict()
